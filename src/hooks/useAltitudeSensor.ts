@@ -26,6 +26,7 @@ export function useAltitudeSensor() {
   const maxAltRef = useRef<number>(0);
   const isJumping = useRef(false);
   const jumpStartAlt = useRef<number>(0);
+  const watchId = useRef<number | null>(null);
 
   const handleDeviceOrientation = useCallback((event: DeviceOrientationEvent) => {
     // Fallback: use orientation data combined with timing
@@ -87,7 +88,8 @@ export function useAltitudeSensor() {
   const startListening = useCallback(async () => {
     try {
       if ('geolocation' in navigator) {
-        navigator.geolocation.watchPosition(
+        if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
+        watchId.current = navigator.geolocation.watchPosition(
           handlePosition,
           (err) => {
             setError('Ошибка GPS: ' + err.message);
@@ -109,6 +111,10 @@ export function useAltitudeSensor() {
   }, [handlePosition]);
 
   const stopListening = useCallback(() => {
+    if (watchId.current !== null) {
+      navigator.geolocation.clearWatch(watchId.current);
+      watchId.current = null;
+    }
     setIsListening(false);
     baselineRef.current = null;
   }, []);
@@ -125,7 +131,7 @@ export function useAltitudeSensor() {
 
   useEffect(() => {
     return () => {
-      // cleanup
+      if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
     };
   }, []);
 
